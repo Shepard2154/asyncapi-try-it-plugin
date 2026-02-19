@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 type UnknownObject = Record<string, unknown>;
 
@@ -17,6 +17,7 @@ interface ComponentSlotProps {
 
 export interface TryItOutPluginOptions {
   endpointBase?: string;
+  showEndpointInput?: boolean;
   showRealBrokerToggle?: boolean;
   buttonLabel?: string;
   resolveEndpoint?: (ctx: {
@@ -137,6 +138,36 @@ function getOperationAction(operation: unknown, fallbackType: string): string {
   return fallbackType;
 }
 
+function extractSchemaProperties(schema: unknown): UnknownObject {
+  const root = asObject(schema);
+  const properties = asObject(root?.properties);
+  return properties ?? {};
+}
+
+function stringifyRaw(value: UnknownObject): string {
+  return JSON.stringify(value, null, 2);
+}
+
+function toInputValue(value: unknown): string {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'string') return value;
+  return String(value);
+}
+
+function castInputValue(value: string, schema: unknown): unknown {
+  const s = asObject(schema);
+  const type = s?.type;
+  if (type === 'number' || type === 'integer') {
+    if (value === '') return undefined;
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? value : parsed;
+  }
+  if (type === 'boolean') {
+    return value === 'true';
+  }
+  return value;
+}
+
 function TryItOutOperation(props: TryItOutProps) {
   const slot = asObject(props.context?.schema) as OperationSlotSchema | undefined;
   const operation = slot?.operation;
@@ -159,7 +190,7 @@ function TryItOutOperation(props: TryItOutProps) {
         endpointBase: props.options.endpointBase,
       });
     }
-    return `/${props.options.endpointBase}/${operationId}/${operationAction}`;
+    return `/${props.options.endpointBase}`;
   }, [
     props.options,
     operationId,
@@ -172,14 +203,48 @@ function TryItOutOperation(props: TryItOutProps) {
     () => sanitizeSchema(normalizeSchema(resolvePayloadSchema(operation))),
     [operation],
   );
+  const payloadProperties = useMemo(
+    () => extractSchemaProperties(payloadSchema),
+    [payloadSchema],
+  );
+  const metadata = useMemo(
+    () => ({
+      operation_id: operationId,
+      operation_type: operationAction,
+    }),
+    [operationId, operationAction],
+  );
 
   const [opened, setOpened] = useState(false);
-  const [raw, setRaw] = useState('{}');
+  const [mode, setMode] = useState<'form' | 'raw'>('form');
+  const [formData, setFormData] = useState<UnknownObject>({});
+  const [raw, setRaw] = useState<string>(() => stringifyRaw(metadata));
   const [url, setUrl] = useState(endpoint);
   const [sendToRealBroker, setSendToRealBroker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [response, setResponse] = useState<unknown>(null);
+
+  useEffect(() => {
+    setUrl(endpoint);
+  }, [endpoint]);
+
+  useEffect(() => {
+    if (mode !== 'raw') return;
+    setRaw((prev) => {
+      let parsed: UnknownObject | undefined;
+      try {
+        parsed = asObject(JSON.parse(prev));
+      } catch {
+        parsed = undefined;
+      }
+      return stringifyRaw({
+        ...(parsed ?? {}),
+        operation_id: metadata.operation_id,
+        operation_type: metadata.operation_type,
+      });
+    });
+  }, [metadata.operation_id, metadata.operation_type, mode]);
 
   const submit = async () => {
     setLoading(true);
@@ -187,7 +252,23 @@ function TryItOutOperation(props: TryItOutProps) {
     setResponse(null);
 
     try {
-      const message = JSON.parse(raw);
+      let userPayload: UnknownObject = {};
+      if (mode === 'raw') {
+        const parsed = JSON.parse(raw);
+        const parsedObj = asObject(parsed);
+        if (!parsedObj) {
+          throw new Error('Raw payload must be a JSON object');
+        }
+        userPayload = parsedObj;
+      } else {
+        userPayload = formData;
+      }
+
+      const message: UnknownObject = {
+        ...userPayload,
+        operation_id: metadata.operation_id,
+        operation_type: metadata.operation_type,
+      };
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -216,6 +297,24 @@ function TryItOutOperation(props: TryItOutProps) {
     }
   };
 
+  const onFormFieldChange = (field: string, value: string, schema: unknown) => {
+    const nextValue = castInputValue(value, schema);
+    const next = { ...formData };
+    if (nextValue === undefined || nextValue === '') {
+      delete next[field];
+    } else {
+      next[field] = nextValue;
+    }
+    setFormData(next);
+    setRaw(
+      stringifyRaw({
+        ...next,
+        operation_id: metadata.operation_id,
+        operation_type: metadata.operation_type,
+      }),
+    );
+  };
+
   return (
     <div className="mt-4">
       <button
@@ -227,24 +326,117 @@ function TryItOutOperation(props: TryItOutProps) {
       </button>
 
       {opened && (
-        <div className="mt-3 border rounded p-3 bg-gray-100">
-          <div className="text-xs text-gray-600 mb-2">Endpoint</div>
-          <input
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="w-full border rounded px-2 py-1 text-sm"
-          />
+        <div className="mt-4 rounded-lg border bg-gray-100 p-4 space-y-4">
+          {props.options.showEndpointInput && (
+            <div className="space-y-1">
+              <div className="text-xs text-gray-600">Endpoint</div>
+              <input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="w-full rounded border px-3 py-2 text-sm bg-white"
+              />
+            </div>
+          )}
 
-          <div className="text-xs text-gray-600 mt-3 mb-2">Message JSON</div>
-          <textarea
-            value={raw}
-            onChange={(e) => setRaw(e.target.value)}
-            className="w-full border rounded px-2 py-1 text-sm font-mono"
-            rows={10}
-          />
+          <div style={{ display: 'flex', gap: '5px' }}>
+            <button
+              type="button"
+              style={{
+                background: mode === 'raw' ? 'none' : '#f0f0f0',
+                border: 'none',
+                padding: '8px 16px',
+                cursor: 'pointer',
+                borderTopLeftRadius: '6px',
+                borderBottomLeftRadius: '6px',
+                fontWeight: mode === 'raw' ? 'normal' : '600',
+                color: mode === 'raw' ? '#666' : '#333',
+                transition: 'all 0.2s',
+                fontSize: '12px',
+              }}
+              onClick={() => setMode('form')}
+            >
+              Form
+            </button>
+            <button
+              type="button"
+              style={{
+                background: mode === 'raw' ? '#f0f0f0' : 'none',
+                border: 'none',
+                padding: '8px 16px',
+                cursor: 'pointer',
+                borderTopRightRadius: '6px',
+                borderBottomRightRadius: '6px',
+                fontWeight: mode === 'raw' ? '600' : 'normal',
+                color: mode === 'raw' ? '#333' : '#666',
+                transition: 'all 0.2s',
+                fontSize: '12px',
+              }}
+              onClick={() => setMode('raw')}
+            >
+              Raw JSON
+            </button>
+          </div>
+
+          {mode === 'form' && (
+            <div className="space-y-3">
+              {Object.entries(payloadProperties).map(([field, fieldSchema]) => {
+                if (field === 'operation_id' || field === 'operation_type') {
+                  return null;
+                }
+                const s = asObject(fieldSchema);
+                const type = typeof s?.type === 'string' ? s.type : 'string';
+                const value = formData[field];
+                if (type === 'boolean') {
+                  return (
+                    <label
+                      key={field}
+                      className="flex items-center gap-2 text-sm text-gray-700"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={value === true}
+                        onChange={(e) =>
+                          onFormFieldChange(
+                            field,
+                            e.target.checked ? 'true' : 'false',
+                            fieldSchema,
+                          )
+                        }
+                      />
+                      {field}
+                    </label>
+                  );
+                }
+                return (
+                  <div key={field} className="space-y-1">
+                    <div className="text-xs text-gray-600">{field}</div>
+                    <input
+                      value={toInputValue(value)}
+                      onChange={(e) =>
+                        onFormFieldChange(field, e.target.value, fieldSchema)
+                      }
+                      className="w-full rounded border px-3 py-2 text-sm bg-white"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {mode === 'raw' && (
+            <div className="space-y-1">
+              <div className="text-xs text-gray-600">Message JSON</div>
+              <textarea
+                value={raw}
+                onChange={(e) => setRaw(e.target.value)}
+                className="w-full rounded border px-3 py-2 text-sm font-mono bg-white"
+                rows={12}
+              />
+            </div>
+          )}
 
           {props.options.showRealBrokerToggle && (
-            <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
               <input
                 type="checkbox"
                 checked={sendToRealBroker}
@@ -254,10 +446,10 @@ function TryItOutOperation(props: TryItOutProps) {
             </label>
           )}
 
-          <div className="mt-3">
+          <div className="pt-1">
             <button
               type="button"
-              className="bg-blue-600 text-white rounded px-3 py-1 text-sm disabled:opacity-60"
+              className="rounded bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-60"
               disabled={loading}
               onClick={submit}
             >
@@ -265,18 +457,18 @@ function TryItOutOperation(props: TryItOutProps) {
             </button>
           </div>
 
-          {error && <div className="mt-3 text-sm text-red-600">{String(error)}</div>}
+          {error && <div className="text-sm text-red-600">{String(error)}</div>}
           {response !== null && (
-            <pre className="mt-3 text-xs bg-white border rounded p-2 overflow-auto">
+            <pre className="max-h-72 overflow-auto rounded border bg-white p-3 text-xs">
               {JSON.stringify(response, null, 2)}
             </pre>
           )}
           {payloadSchema !== undefined && payloadSchema !== null && (
-            <details className="mt-3">
+            <details>
               <summary className="text-xs text-gray-600 cursor-pointer">
                 Payload schema
               </summary>
-              <pre className="mt-2 text-xs bg-white border rounded p-2 overflow-auto">
+              <pre className="mt-2 max-h-72 overflow-auto rounded border bg-white p-3 text-xs">
                 {JSON.stringify(payloadSchema, null, 2)}
               </pre>
             </details>
@@ -293,6 +485,7 @@ export function createTryItOutPlugin(
   const normalized: Required<Omit<TryItOutPluginOptions, 'resolveEndpoint'>> &
     Pick<TryItOutPluginOptions, 'resolveEndpoint'> = {
     endpointBase: options.endpointBase ?? 'asyncapi/try',
+    showEndpointInput: options.showEndpointInput ?? false,
     showRealBrokerToggle: options.showRealBrokerToggle ?? true,
     buttonLabel: options.buttonLabel ?? 'Try it out',
     resolveEndpoint: options.resolveEndpoint,
