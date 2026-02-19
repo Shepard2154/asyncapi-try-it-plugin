@@ -1,0 +1,10 @@
+/**/node_modules
+/**/dist
+
+# misc
+.DS_Store
+npm-debug.log*
+lerna-debug.log*
+/**/*.tgz
+/.idea/
+.vscode
