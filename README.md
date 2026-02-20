@@ -16,8 +16,6 @@ import { createTryItOutPlugin } from 'asyncapi-try-it-plugin';
 
 const tryItOutPlugin = createTryItOutPlugin({
   endpointBase: 'asyncapi/try',
-  showEndpointInput: false,
-  showPayloadSchema: false,
 });
 
 <AsyncApiComponent schema={schema} plugins={[tryItOutPlugin]} />;
