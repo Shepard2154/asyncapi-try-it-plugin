@@ -19,8 +19,8 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.tsx --format cjs,esm --dts --clean",
-    "dev": "tsup src/index.tsx --format cjs,esm --dts --watch",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,html,css,yaml,yml}\"",
     "prepublishOnly": "npm run build"
   },
