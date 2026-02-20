@@ -1,0 +1,53 @@
+{
+  "name": "asyncapi-try-it-plugin",
+  "version": "0.1.0",
+  "description": "Try it out plugin for @asyncapi/react-component",
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "unpkg": "dist/index.iife.js",
+  "jsdelivr": "dist/index.iife.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean && npm run build:iife",
+    "build:iife": "rollup -c rollup.config.mjs",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,html,css,yaml,yml}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@asyncapi/react-component": "^2.6.0",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@asyncapi/react-component": "^2.6.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@rollup/plugin-commonjs": "^28.0.8",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@types/react": "^18.3.12",
+    "jsdom": "^27.0.0",
+    "prettier": "^3.6.2",
+    "rollup": "^4.52.4",
+    "rollup-plugin-esbuild": "^6.2.1",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.3",
+    "vitest": "^3.2.4"
+  }
+}
