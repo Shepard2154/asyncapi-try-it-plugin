@@ -437,24 +437,94 @@ function TryItOutOperation(props: TryItOutProps) {
           )}
 
           {props.options.showRealBrokerToggle && (
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={sendToRealBroker}
-                onChange={(e) => setSendToRealBroker(e.target.checked)}
-              />
-              Send to real broker
-            </label>
+            <div
+              style={{
+                marginTop: '10px',
+                padding: '10px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '6px',
+                border: '1px solid #e1e4e8',
+              }}
+            >
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={sendToRealBroker}
+                  onChange={(e) => setSendToRealBroker(e.target.checked)}
+                  style={{
+                    marginRight: '8px',
+                    width: '14px',
+                    height: '14px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <span style={{ fontWeight: 500, fontSize: '12px' }}>
+                  Send to real message broker
+                </span>
+              </label>
+              <p
+                style={{
+                  marginTop: '6px',
+                  color: '#666',
+                  fontSize: '12px',
+                  lineHeight: '1.35',
+                }}
+              >
+                When enabled, the message will be published to the actual broker
+                instead of test environment.
+              </p>
+            </div>
           )}
 
-          <div className="pt-1">
+          <div
+            style={{
+              marginTop: '14px',
+              display: 'flex',
+              gap: '8px',
+              justifyContent: 'flex-end',
+            }}
+          >
             <button
               type="button"
-              className="rounded bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-60"
+              onClick={() => setOpened(false)}
+              style={{
+                backgroundColor: 'transparent',
+                color: '#666',
+                padding: '7px 14px',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 500,
+                fontSize: '12px',
+                transition: 'all 0.2s',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              style={{
+                backgroundColor: '#61affe',
+                color: 'white',
+                padding: '7px 14px',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '12px',
+                transition: 'all 0.2s',
+                opacity: loading ? 0.6 : 1,
+              }}
               disabled={loading}
               onClick={submit}
             >
-              {loading ? 'Sending...' : 'Send message'}
+              {loading ? 'Sending...' : 'Send Message'}
             </button>
           </div>
 
