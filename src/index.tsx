@@ -77,9 +77,12 @@ function sanitizeSchema(schema: unknown): unknown {
 
   for (const [key, value] of Object.entries(source)) {
     if (
-      ['additionalProperties', 'dependencies', 'patternProperties', 'definitions'].includes(
-        key,
-      ) &&
+      [
+        'additionalProperties',
+        'dependencies',
+        'patternProperties',
+        'definitions',
+      ].includes(key) &&
       value === true
     ) {
       clean[key] = {};
@@ -95,9 +98,11 @@ function resolvePayloadSchema(operation: unknown): unknown {
   const op = asObject(operation);
   if (!op) return undefined;
 
-  const messagesResult = typeof op.messages === 'function' ? op.messages() : undefined;
+  const messagesResult =
+    typeof op.messages === 'function' ? op.messages() : undefined;
   const messages = asObject(messagesResult);
-  const all = messages && typeof messages.all === 'function' ? messages.all() : undefined;
+  const all =
+    messages && typeof messages.all === 'function' ? messages.all() : undefined;
   if (Array.isArray(all) && all.length > 0) {
     const firstMessage = asObject(all[0]);
     const payload =
@@ -110,7 +115,8 @@ function resolvePayloadSchema(operation: unknown): unknown {
     }
   }
 
-  const opJson = typeof op.json === 'function' ? asObject(op.json()) : undefined;
+  const opJson =
+    typeof op.json === 'function' ? asObject(op.json()) : undefined;
   return asObject(opJson?.message)?.payload;
 }
 
@@ -170,7 +176,9 @@ function castInputValue(value: string, schema: unknown): unknown {
 }
 
 function TryItOutOperation(props: TryItOutProps) {
-  const slot = asObject(props.context?.schema) as OperationSlotSchema | undefined;
+  const slot = asObject(props.context?.schema) as
+    | OperationSlotSchema
+    | undefined;
   const operation = slot?.operation;
   const channelName = slot?.channelName ?? 'unknown';
   const type = slot?.type ?? 'send';
@@ -192,13 +200,7 @@ function TryItOutOperation(props: TryItOutProps) {
       });
     }
     return `/${props.options.endpointBase}`;
-  }, [
-    props.options,
-    operationId,
-    operationAction,
-    channelName,
-    type,
-  ]);
+  }, [props.options, operationId, operationAction, channelName, type]);
 
   const payloadSchema = useMemo(
     () => sanitizeSchema(normalizeSchema(resolvePayloadSchema(operation))),
@@ -552,9 +554,7 @@ function TryItOutOperation(props: TryItOutProps) {
   );
 }
 
-export function createTryItOutPlugin(
-  options: TryItOutPluginOptions = {},
-): any {
+export function createTryItOutPlugin(options: TryItOutPluginOptions = {}): any {
   const normalized: Required<Omit<TryItOutPluginOptions, 'resolveEndpoint'>> &
     Pick<TryItOutPluginOptions, 'resolveEndpoint'> = {
     endpointBase: options.endpointBase ?? 'asyncapi/try',
