@@ -1,3 +1,5 @@
+import React from 'react';
+
 interface ActionButtonsProps {
   loading: boolean;
   onCancel: () => void;

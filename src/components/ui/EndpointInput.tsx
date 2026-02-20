@@ -1,3 +1,5 @@
+import React from 'react';
+
 interface EndpointInputProps {
   value: string;
   onChange: (value: string) => void;

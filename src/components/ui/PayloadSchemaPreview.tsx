@@ -1,3 +1,5 @@
+import React from 'react';
+
 interface PayloadSchemaPreviewProps {
   payloadSchema: unknown;
 }

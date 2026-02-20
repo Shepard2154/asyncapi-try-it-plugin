@@ -1,3 +1,5 @@
+import React from 'react';
+
 interface ModeTabsProps {
   mode: 'form' | 'raw';
   onChange: (mode: 'form' | 'raw') => void;

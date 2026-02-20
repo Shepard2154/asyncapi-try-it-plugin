@@ -1,3 +1,4 @@
+import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createTryItOutPlugin } from '../createTryItOutPlugin';
 import { TryItOutOperation } from '../components/TryItOutOperation';
