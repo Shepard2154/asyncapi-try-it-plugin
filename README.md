@@ -16,6 +16,8 @@ import { createTryItOutPlugin } from 'asyncapi-try-it-plugin';
 
 const tryItOutPlugin = createTryItOutPlugin({
   endpointBase: 'asyncapi/try',
+  showEndpointInput: false,
+  showPayloadSchema: false,
 });
 
 <AsyncApiComponent schema={schema} plugins={[tryItOutPlugin]} />;
@@ -26,22 +28,49 @@ const tryItOutPlugin = createTryItOutPlugin({
 ```ts
 createTryItOutPlugin({
   endpointBase?: string;
+  showEndpointInput?: boolean;
+  showPayloadSchema?: boolean;
   showRealBrokerToggle?: boolean;
   buttonLabel?: string;
-  resolveEndpoint?: (ctx) => string;
+  resolveEndpoint?: (ctx: {
+    operationId: string;
+    operationAction: string;
+    channelName: string;
+    type: string;
+    endpointBase: string;
+  }) => string;
 });
 ```
 
-Default endpoint is:
+Defaults:
 
-`/${endpointBase}/${operationId}/${operationAction}`
+- `endpointBase: 'asyncapi/try'`
+- `showEndpointInput: false`
+- `showPayloadSchema: false`
+- `showRealBrokerToggle: true`
+- `buttonLabel: 'Try it out'`
+
+Default endpoint:
+
+`/${endpointBase}`
+
+## Behavior
+
+- Two input modes are supported: `Form` and `Raw JSON`.
+- `operation_id` and `operation_type` are always added to outgoing payload automatically.
+- In `Form` mode these metadata fields are hidden from the form.
+- In `Raw JSON` mode these metadata fields are prefilled and kept in sync.
 
 POST body:
 
 ```json
 {
   "channelName": "string",
-  "message": {},
+  "message": {
+    "operation_id": "string",
+    "operation_type": "string",
+    "message": {}
+  },
   "options": {
     "sendToRealBroker": false,
     "timestamp": "ISO string"
