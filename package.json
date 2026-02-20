@@ -1,0 +1,39 @@
+{
+  "name": "asyncapi-try-it-plugin",
+  "version": "0.1.0",
+  "description": "Try it out plugin for @asyncapi/react-component",
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,html,css,yaml,yml}\"",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@asyncapi/react-component": "^2.6.0",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@asyncapi/react-component": "^2.6.0",
+    "@types/react": "^18.3.12",
+    "prettier": "^3.6.2",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.3"
+  }
+}
