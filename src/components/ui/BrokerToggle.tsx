@@ -1,3 +1,5 @@
+import React from 'react';
+
 interface BrokerToggleProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
