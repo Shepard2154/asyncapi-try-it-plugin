@@ -164,7 +164,7 @@ export function TryItOutOperation(props: TryItOutProps) {
       </button>
 
       {opened && (
-        <div className="mt-4 rounded-lg border bg-gray-100 p-4 space-y-4">
+        <div className="mt-4 min-w-0 rounded-lg border bg-gray-100 p-4 space-y-4">
           {props.options.showEndpointInput && (
             <EndpointInput value={url} onChange={setUrl} />
           )}
@@ -196,7 +196,7 @@ export function TryItOutOperation(props: TryItOutProps) {
 
           {error && <div className="text-sm text-red-600">{String(error)}</div>}
           {response !== null && (
-            <pre className="max-h-72 overflow-auto rounded border bg-white p-3 text-xs">
+            <pre className="mt-2 max-h-72 max-w-full overflow-x-auto overflow-y-auto rounded border bg-white p-4 text-xs">
               {JSON.stringify(response, null, 2)}
             </pre>
           )}
