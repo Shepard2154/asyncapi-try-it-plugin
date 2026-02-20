@@ -18,6 +18,7 @@ interface ComponentSlotProps {
 export interface TryItOutPluginOptions {
   endpointBase?: string;
   showEndpointInput?: boolean;
+  showPayloadSchema?: boolean;
   showRealBrokerToggle?: boolean;
   buttonLabel?: string;
   resolveEndpoint?: (ctx: {
@@ -463,16 +464,18 @@ function TryItOutOperation(props: TryItOutProps) {
               {JSON.stringify(response, null, 2)}
             </pre>
           )}
-          {payloadSchema !== undefined && payloadSchema !== null && (
-            <details>
-              <summary className="text-xs text-gray-600 cursor-pointer">
-                Payload schema
-              </summary>
-              <pre className="mt-2 max-h-72 overflow-auto rounded border bg-white p-3 text-xs">
-                {JSON.stringify(payloadSchema, null, 2)}
-              </pre>
-            </details>
-          )}
+          {props.options.showPayloadSchema &&
+            payloadSchema !== undefined &&
+            payloadSchema !== null && (
+              <details>
+                <summary className="cursor-pointer text-xs text-gray-600">
+                  Payload schema
+                </summary>
+                <pre className="mt-2 max-h-72 overflow-auto rounded border bg-white p-4 text-xs leading-relaxed">
+                  {JSON.stringify(payloadSchema, null, 2)}
+                </pre>
+              </details>
+            )}
         </div>
       )}
     </div>
@@ -486,6 +489,7 @@ export function createTryItOutPlugin(
     Pick<TryItOutPluginOptions, 'resolveEndpoint'> = {
     endpointBase: options.endpointBase ?? 'asyncapi/try',
     showEndpointInput: options.showEndpointInput ?? false,
+    showPayloadSchema: options.showPayloadSchema ?? false,
     showRealBrokerToggle: options.showRealBrokerToggle ?? true,
     buttonLabel: options.buttonLabel ?? 'Try it out',
     resolveEndpoint: options.resolveEndpoint,
