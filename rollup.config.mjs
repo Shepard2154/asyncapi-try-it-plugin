@@ -24,7 +24,7 @@ export default {
       jsx: 'transform',
       jsxFactory: 'React.createElement',
       jsxFragment: 'React.Fragment',
-      minify: false,
+      minify: true,
       sourceMap: true,
       tsconfig: 'tsconfig.json',
     }),
