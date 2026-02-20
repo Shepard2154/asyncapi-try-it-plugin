@@ -2,6 +2,14 @@
   "name": "asyncapi-try-it-plugin",
   "version": "0.1.0-beta.0",
   "description": "Try it out plugin for @asyncapi/react-component",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Shepard2154/asyncapi-try-it-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Shepard2154/asyncapi-try-it-plugin/issues"
+  },
+  "homepage": "https://github.com/Shepard2154/asyncapi-try-it-plugin#readme",
   "license": "Apache-2.0",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

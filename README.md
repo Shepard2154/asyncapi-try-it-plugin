@@ -1,5 +1,7 @@
 # asyncapi-try-it-plugin
 
+[![npm](https://img.shields.io/npm/v/asyncapi-try-it-plugin.svg)](https://www.npmjs.com/package/asyncapi-try-it-plugin)
+
 Plugin for `@asyncapi/react-component` that adds a `Try it out` action for operation blocks.
 
 ## Install
