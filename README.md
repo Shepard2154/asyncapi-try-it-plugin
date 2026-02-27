@@ -32,6 +32,12 @@ createTryItOutPlugin({
   showPayloadSchema?: boolean;
   showRealBrokerToggle?: boolean;
   buttonLabel?: string;
+  additionalFields?: Array<{
+    key: string;
+    type: 'string' | 'number' | 'integer' | 'boolean';
+    label?: string;
+    defaultValue?: unknown;
+  }>;
   resolveEndpoint?: (ctx: {
     operationId: string;
     operationAction: string;
@@ -49,6 +55,7 @@ Defaults:
 - `showPayloadSchema: false`
 - `showRealBrokerToggle: true`
 - `buttonLabel: 'Try it out'`
+- `additionalFields: []`
 
 Default endpoint:
 
@@ -60,6 +67,7 @@ Default endpoint:
 - `operation_id` and `operation_type` are always added to outgoing payload automatically.
 - In `Form` mode these metadata fields are hidden from the form.
 - In `Raw JSON` mode these metadata fields are prefilled and kept in sync.
+- For array payload schemas, the `Form` mode renders an add/remove item editor.
 
 POST body:
 
@@ -69,7 +77,7 @@ POST body:
   "message": {
     "operation_id": "string",
     "operation_type": "string",
-    "message": {}
+    "message": "<payload>"
   },
   "options": {
     "sendToRealBroker": false,
@@ -77,3 +85,14 @@ POST body:
   }
 }
 ```
+
+`message.message` matches the AsyncAPI payload schema type:
+
+| Schema type | `message.message` value |
+|-------------|-------------------------|
+| `object`    | `{ "field": "value", ... }` |
+| `string`    | `"hello"` |
+| `integer` / `number` | `42` |
+| `boolean`   | `true` |
+| `array`     | `["a", "b"]` |
+| `null`      | `null` |
