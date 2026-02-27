@@ -1,4 +1,4 @@
-import { UnknownObject } from '../types';
+import { AdditionalField, UnknownObject } from '../types';
 import { asObject } from './object';
 
 export function normalizeSchema(schema: unknown): unknown {
@@ -81,8 +81,64 @@ export function resolvePayloadSchema(operation: unknown): unknown {
   return asObject(opJson?.message)?.payload;
 }
 
+const PRIMITIVE_TYPES = new Set(['string', 'number', 'integer', 'boolean']);
+
+export function isPrimitiveSchema(schema: unknown): boolean {
+  const root = asObject(schema);
+  if (!root) return false;
+  const type = root.type;
+  if (typeof type === 'string' && PRIMITIVE_TYPES.has(type)) {
+    return !asObject(root.properties);
+  }
+  return false;
+}
+
+/** Synthetic field name for primitive payload schemas (e.g. `{"type":"string"}`). */
+export const PRIMITIVE_PAYLOAD_FIELD = 'message';
+
 export function extractSchemaProperties(schema: unknown): UnknownObject {
   const root = asObject(schema);
   const properties = asObject(root?.properties);
-  return properties ?? {};
+  if (properties && Object.keys(properties).length > 0) {
+    return properties;
+  }
+  if (root && typeof root.type === 'string' && PRIMITIVE_TYPES.has(root.type)) {
+    return { [PRIMITIVE_PAYLOAD_FIELD]: { type: root.type } };
+  }
+  return {};
+}
+
+/**
+ * Returns the default value to place under `message.message` when building
+ * the initial raw payload.
+ * - primitive schema  → scalar zero-value (0, false, "")
+ * - object schema     → plain object with defaults from additionalFields
+ */
+export function isArraySchema(schema: unknown): boolean {
+  const root = asObject(schema);
+  return root != null && root.type === 'array';
+}
+
+export function buildDefaultPayload(
+  payloadSchema: unknown,
+  additionalFields: AdditionalField[] = [],
+): unknown {
+  const schemaType = (asObject(payloadSchema) as UnknownObject)?.type;
+  if (schemaType === 'null') return null;
+  if (schemaType === 'array') return [];
+  if (isPrimitiveSchema(payloadSchema)) {
+    return schemaType === 'number' || schemaType === 'integer' ? 0 : schemaType === 'boolean' ? false : '';
+  }
+  const obj: UnknownObject = {};
+  for (const f of additionalFields) {
+    obj[f.key] =
+      f.defaultValue !== undefined
+        ? f.defaultValue
+        : f.type === 'number' || f.type === 'integer'
+          ? 0
+          : f.type === 'boolean'
+            ? false
+            : '';
+  }
+  return obj;
 }

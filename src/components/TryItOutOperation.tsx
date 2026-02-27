@@ -9,13 +9,18 @@ import {
 } from '../utils/payload';
 import { getOperationAction, getOperationId } from '../utils/operation';
 import {
+  buildDefaultPayload,
   extractSchemaProperties,
+  isArraySchema,
   normalizeSchema,
   resolvePayloadSchema,
   sanitizeSchema,
+  isPrimitiveSchema,
+  PRIMITIVE_PAYLOAD_FIELD,
 } from '../utils/schema';
 import { ModeTabs } from './ui/ModeTabs';
 import { PayloadFormFields } from './ui/PayloadFormFields';
+import { ArrayEditor } from './ui/ArrayEditor';
 import { BrokerToggle } from './ui/BrokerToggle';
 import { ActionButtons } from './ui/ActionButtons';
 import { PayloadSchemaPreview } from './ui/PayloadSchemaPreview';
@@ -53,10 +58,16 @@ export function TryItOutOperation(props: TryItOutProps) {
     () => sanitizeSchema(normalizeSchema(resolvePayloadSchema(operation))),
     [operation],
   );
-  const payloadProperties = useMemo(
-    () => extractSchemaProperties(payloadSchema),
-    [payloadSchema],
-  );
+  const payloadProperties = useMemo(() => {
+    const fromSchema = extractSchemaProperties(payloadSchema);
+    const extra = props.options.additionalFields ?? [];
+    if (extra.length === 0) return fromSchema;
+    const merged = { ...fromSchema };
+    for (const f of extra) {
+      merged[f.key] = { type: f.type, title: f.label ?? f.key };
+    }
+    return merged;
+  }, [payloadSchema, props.options.additionalFields]);
   const metadata = useMemo(
     () => ({
       operation_id: operationId,
@@ -68,7 +79,13 @@ export function TryItOutOperation(props: TryItOutProps) {
   const [opened, setOpened] = useState(false);
   const [mode, setMode] = useState<'form' | 'raw'>('form');
   const [formData, setFormData] = useState<UnknownObject>({});
-  const [raw, setRaw] = useState<string>(() => stringifyRaw(metadata));
+  const [arrayData, setArrayData] = useState<unknown[]>([]);
+  const [raw, setRaw] = useState<string>(() =>
+    stringifyRaw({
+      ...metadata,
+      message: buildDefaultPayload(payloadSchema, props.options.additionalFields),
+    }),
+  );
   const [url, setUrl] = useState(endpoint);
   const [sendToRealBroker, setSendToRealBroker] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -90,22 +107,31 @@ export function TryItOutOperation(props: TryItOutProps) {
     setResponse(null);
 
     try {
-      let userPayload: UnknownObject = {};
+      let messageContent: unknown;
       if (mode === 'raw') {
         const parsed = JSON.parse(raw);
         const parsedObj = asObject(parsed);
         if (!parsedObj) {
           throw new Error('Raw payload must be a JSON object');
         }
-        userPayload = parsedObj;
+        messageContent = parsedObj['message'];
       } else {
-        userPayload = formData;
+        if (isPrimitiveSchema(payloadSchema)) {
+          messageContent = formData[PRIMITIVE_PAYLOAD_FIELD];
+        } else if (isArraySchema(payloadSchema)) {
+          messageContent = arrayData;
+        } else {
+          messageContent = buildDefaultPayload(payloadSchema, []);
+          if (messageContent !== null) {
+            messageContent = { ...formData };
+          }
+        }
       }
 
       const message: UnknownObject = {
-        ...userPayload,
         operation_id: metadata.operation_id,
         operation_type: metadata.operation_type,
+        message: messageContent,
       };
       const res = await fetch(url, {
         method: 'POST',
@@ -144,14 +170,32 @@ export function TryItOutOperation(props: TryItOutProps) {
       next[field] = nextValue;
     }
     setFormData(next);
+    const msgContent: unknown = isPrimitiveSchema(payloadSchema)
+      ? next[PRIMITIVE_PAYLOAD_FIELD]
+      : { ...next };
     setRaw(
       stringifyRaw({
-        ...next,
         operation_id: metadata.operation_id,
         operation_type: metadata.operation_type,
+        message: msgContent,
       }),
     );
   };
+
+  const onArrayChange = (next: unknown[]) => {
+    setArrayData(next);
+    setRaw(
+      stringifyRaw({
+        operation_id: metadata.operation_id,
+        operation_type: metadata.operation_type,
+        message: next,
+      }),
+    );
+  };
+
+  const itemSchema = isArraySchema(payloadSchema)
+    ? (asObject(payloadSchema) as UnknownObject)?.items
+    : undefined;
 
   return (
     <div className="mt-4">
@@ -171,13 +215,20 @@ export function TryItOutOperation(props: TryItOutProps) {
 
           <ModeTabs mode={mode} onChange={setMode} />
 
-          {mode === 'form' && (
-            <PayloadFormFields
-              payloadProperties={payloadProperties}
-              formData={formData}
-              onFieldChange={onFormFieldChange}
-            />
-          )}
+          {mode === 'form' &&
+            (isArraySchema(payloadSchema) ? (
+              <ArrayEditor
+                items={arrayData}
+                itemSchema={itemSchema}
+                onChange={onArrayChange}
+              />
+            ) : (
+              <PayloadFormFields
+                payloadProperties={payloadProperties}
+                formData={formData}
+                onFieldChange={onFormFieldChange}
+              />
+            ))}
 
           {mode === 'raw' && <RawJsonEditor value={raw} onChange={setRaw} />}
 

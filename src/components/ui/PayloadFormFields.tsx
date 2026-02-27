@@ -22,6 +22,8 @@ export function PayloadFormFields({
         }
         const s = asObject(fieldSchema);
         const schemaType = typeof s?.type === 'string' ? s.type : 'string';
+        const label =
+          (typeof s?.title === 'string' ? s.title : null) ?? field;
         const value = formData[field];
         if (schemaType === 'boolean') {
           return (
@@ -40,14 +42,19 @@ export function PayloadFormFields({
                   )
                 }
               />
-              {field}
+              {label}
             </label>
           );
         }
+        const inputType =
+          schemaType === 'number' || schemaType === 'integer'
+            ? 'number'
+            : 'text';
         return (
           <div key={field} className="space-y-1">
-            <div className="text-xs text-gray-600">{field}</div>
+            <div className="text-xs text-gray-600">{label}</div>
             <input
+              type={inputType}
               value={toInputValue(value)}
               onChange={(e) =>
                 onFieldChange(field, e.target.value, fieldSchema)
