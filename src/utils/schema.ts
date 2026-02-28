@@ -127,7 +127,11 @@ export function buildDefaultPayload(
   if (schemaType === 'null') return null;
   if (schemaType === 'array') return [];
   if (isPrimitiveSchema(payloadSchema)) {
-    return schemaType === 'number' || schemaType === 'integer' ? 0 : schemaType === 'boolean' ? false : '';
+    return schemaType === 'number' || schemaType === 'integer'
+      ? 0
+      : schemaType === 'boolean'
+        ? false
+        : '';
   }
   const obj: UnknownObject = {};
   for (const f of additionalFields) {

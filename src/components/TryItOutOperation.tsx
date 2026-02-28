@@ -83,7 +83,10 @@ export function TryItOutOperation(props: TryItOutProps) {
   const [raw, setRaw] = useState<string>(() =>
     stringifyRaw({
       ...metadata,
-      message: buildDefaultPayload(payloadSchema, props.options.additionalFields),
+      message: buildDefaultPayload(
+        payloadSchema,
+        props.options.additionalFields,
+      ),
     }),
   );
   const [url, setUrl] = useState(endpoint);
