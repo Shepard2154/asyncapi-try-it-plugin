@@ -19,7 +19,7 @@ export function createTryItOutPlugin(options: TryItOutPluginOptions = {}): any {
 
   return {
     name: 'asyncapi-try-it-plugin',
-    version: '0.2.0-beta.3',
+    version: '0.3.0-standalone.0',
     install(api: any) {
       api.registerComponent('operation', (props: ComponentSlotProps) => (
         <TryItOutOperation {...props} options={normalized} />
