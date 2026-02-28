@@ -22,8 +22,7 @@ export function PayloadFormFields({
         }
         const s = asObject(fieldSchema);
         const schemaType = typeof s?.type === 'string' ? s.type : 'string';
-        const label =
-          (typeof s?.title === 'string' ? s.title : null) ?? field;
+        const label = (typeof s?.title === 'string' ? s.title : null) ?? field;
         const value = formData[field];
         if (schemaType === 'boolean') {
           return (

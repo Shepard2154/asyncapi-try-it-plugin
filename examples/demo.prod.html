@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Try-it plugin demo (CDN)</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@asyncapi/react-component@3.0.2/styles/default.min.css"
+    />
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Try-it plugin demo (CDN)</h1>
+    <div id="asyncapi"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@asyncapi/react-component@3.0.2/browser/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/asyncapi-try-it-plugin@0.2.0-beta.0/dist/index.iife.js"></script>
+
+    <script>
+      const schema = {
+        asyncapi: '2.6.0',
+        info: { title: 'Try-it payload demo', version: '1.1.0' },
+        channels: {
+          'users.created': {
+            publish: {
+              operationId: 'usersCreated',
+              message: {
+                payload: {
+                  type: 'object',
+                  required: ['userId', 'name'],
+                  properties: {
+                    userId: { type: 'string', example: 'u-123' },
+                    name: { type: 'string', example: 'Alice' },
+                    age: { type: 'integer', example: 30 },
+                    active: { type: 'boolean', example: true },
+                  },
+                },
+              },
+            },
+          },
+          'tags.updated': {
+            publish: {
+              operationId: 'tagsUpdated',
+              message: {
+                payload: {
+                  type: 'array',
+                  items: { type: 'string' },
+                },
+              },
+            },
+          },
+          'system.status': {
+            publish: {
+              operationId: 'systemStatus',
+              message: {
+                payload: {
+                  type: 'string',
+                  example: 'ok',
+                },
+              },
+            },
+          },
+          'system.ping': {
+            publish: {
+              operationId: 'systemPing',
+              message: {
+                payload: {
+                  type: 'null',
+                },
+              },
+            },
+          },
+        },
+      };
+
+      // For demo POST goes to httpbin.org (static servers return 405 for local POST)
+      const plugin = window.AsyncApiTryItPlugin.createTryItOutPlugin({
+        endpointBase: 'asyncapi/try',
+        resolveEndpoint: () => 'https://httpbin.org/post',
+      });
+
+      const AsyncApiModule = window.AsyncApiComponent;
+      const AsyncApi = AsyncApiModule.default || AsyncApiModule;
+
+      const root = window.ReactDOM.createRoot(
+        document.getElementById('asyncapi'),
+      );
+      root.render(
+        window.React.createElement(AsyncApi, {
+          schema,
+          plugins: [plugin],
+        }),
+      );
+    </script>
+  </body>
+</html>
