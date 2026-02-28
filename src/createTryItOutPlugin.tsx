@@ -13,6 +13,7 @@ export function createTryItOutPlugin(options: TryItOutPluginOptions = {}): any {
     showPayloadSchema: options.showPayloadSchema ?? false,
     showRealBrokerToggle: options.showRealBrokerToggle ?? true,
     buttonLabel: options.buttonLabel ?? 'Try it out',
+    additionalFields: options.additionalFields ?? [],
     resolveEndpoint: options.resolveEndpoint,
   };
 

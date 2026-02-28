@@ -13,12 +13,20 @@ export interface ComponentSlotProps {
   onClose?: () => void;
 }
 
+export interface AdditionalField {
+  key: string;
+  type: 'string' | 'number' | 'integer' | 'boolean';
+  label?: string;
+  defaultValue?: unknown;
+}
+
 export interface TryItOutPluginOptions {
   endpointBase?: string;
   showEndpointInput?: boolean;
   showPayloadSchema?: boolean;
   showRealBrokerToggle?: boolean;
   buttonLabel?: string;
+  additionalFields?: AdditionalField[];
   resolveEndpoint?: (ctx: {
     operationId: string;
     operationAction: string;
