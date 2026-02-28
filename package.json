@@ -1,8 +1,15 @@
 {
   "name": "asyncapi-try-it-plugin",
-  "version": "0.2.0-beta.1",
+  "version": "0.2.0-beta.2",
   "description": "Try it out plugin for @asyncapi/react-component",
   "keywords": [
+    "asyncapi",
+    "asyncapi-plugin",
+    "react",
+    "reactjs",
+    "event"
+  ],
+  "tags": [
     "asyncapi",
     "asyncapi-plugin",
     "react",
