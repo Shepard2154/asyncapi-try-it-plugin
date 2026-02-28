@@ -4,6 +4,10 @@
 
 Plugin for `@asyncapi/react-component` that adds a `Try it out` action for operation blocks.
 
+## Branch `standalone-compat`
+
+The **`standalone-compat`** branch is a separate line of development for compatibility with the [official standalone build](https://www.npmjs.com/package/@asyncapi/react-component) (single script from CDN). On this branch the plugin UI is implemented as a **class component** (no React hooks), so it can be used together with `AsyncApiStandalone.render()` without "Invalid hook call" errors. The default branch may use hooks and targets the browser bundle (`browser/index.js`) with a shared React instance.
+
 ## Install
 
 ```bash

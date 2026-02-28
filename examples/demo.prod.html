@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Try-it plugin demo (CDN)</title>
+    <title>Try-it plugin demo (CDN, standalone)</title>
     <link
       rel="stylesheet"
       href="https://unpkg.com/@asyncapi/react-component@3.0.2/styles/default.min.css"
@@ -19,13 +19,13 @@
     </style>
   </head>
   <body>
-    <h1>Try-it plugin demo (CDN)</h1>
+    <h1>Try-it plugin demo (CDN + standalone)</h1>
     <div id="asyncapi"></div>
 
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@asyncapi/react-component@3.0.2/browser/index.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/asyncapi-try-it-plugin@0.2.0-beta.2/dist/index.iife.js"></script>
+    <script src="https://unpkg.com/@asyncapi/react-component@3.0.2/browser/standalone/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/asyncapi-try-it-plugin@0.2.0-beta.3/dist/index.iife.js"></script>
 
     <script>
       const schema = {
@@ -90,14 +90,9 @@
         resolveEndpoint: () => 'https://httpbin.org/post',
       });
 
-      const root = window.ReactDOM.createRoot(
+      window.AsyncApiStandalone.render(
+        { schema, plugins: [plugin] },
         document.getElementById('asyncapi'),
-      );
-      root.render(
-        window.React.createElement(window.AsyncApiComponent, {
-          schema,
-          plugins: [plugin],
-        }),
       );
     </script>
   </body>

@@ -24,7 +24,7 @@
 
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@asyncapi/react-component@3.0.2/browser/index.js"></script>
+    <script src="https://unpkg.com/@asyncapi/react-component@3.0.2/browser/standalone/index.js"></script>
     <script src="../dist/index.iife.js"></script>
 
     <script>
@@ -92,17 +92,9 @@
         resolveEndpoint: () => 'https://httpbin.org/post',
       });
 
-      const AsyncApiModule = window.AsyncApiComponent;
-      const AsyncApi = AsyncApiModule.default || AsyncApiModule;
-
-      const root = window.ReactDOM.createRoot(
+      window.AsyncApiStandalone.render(
+        { schema, plugins: [plugin] },
         document.getElementById('asyncapi'),
-      );
-      root.render(
-        window.React.createElement(AsyncApi, {
-          schema,
-          plugins: [plugin],
-        }),
       );
     </script>
   </body>

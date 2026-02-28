@@ -1,5 +1,4 @@
 import React from 'react';
-import { useEffect, useMemo, useState } from 'react';
 import { OperationSlotSchema, TryItOutProps, UnknownObject } from '../types';
 import { asObject } from '../utils/object';
 import {
@@ -27,21 +26,85 @@ import { PayloadSchemaPreview } from './ui/PayloadSchemaPreview';
 import { EndpointInput } from './ui/EndpointInput';
 import { RawJsonEditor } from './ui/RawJsonEditor';
 
-export function TryItOutOperation(props: TryItOutProps) {
-  const slot = asObject(props.context?.schema) as
-    | OperationSlotSchema
-    | undefined;
-  const operation = slot?.operation;
-  const channelName = slot?.channelName ?? 'unknown';
-  const type = slot?.type ?? 'send';
+interface TryItOutState {
+  opened: boolean;
+  mode: 'form' | 'raw';
+  formData: UnknownObject;
+  arrayData: unknown[];
+  raw: string;
+  url: string;
+  sendToRealBroker: boolean;
+  loading: boolean;
+  error: string;
+  response: unknown;
+}
 
-  const operationId = useMemo(() => getOperationId(operation), [operation]);
-  const operationAction = useMemo(
-    () => getOperationAction(operation, type),
-    [operation, type],
-  );
+export class TryItOutOperation extends React.Component<
+  TryItOutProps,
+  TryItOutState
+> {
+  constructor(props: TryItOutProps) {
+    super(props);
+    const slot = asObject(props.context?.schema) as
+      | OperationSlotSchema
+      | undefined;
+    const operation = slot?.operation;
+    const operationId = getOperationId(operation);
+    const operationAction = getOperationAction(operation, slot?.type ?? 'send');
+    const metadata = {
+      operation_id: operationId,
+      operation_type: operationAction,
+    };
+    const payloadSchema = sanitizeSchema(
+      normalizeSchema(resolvePayloadSchema(operation)),
+    );
+    const initialMessage = buildDefaultPayload(
+      payloadSchema,
+      props.options.additionalFields,
+    );
+    this.state = {
+      opened: false,
+      mode: 'form',
+      formData: {},
+      arrayData: [],
+      raw: stringifyRaw({ ...metadata, message: initialMessage }),
+      url: this.getEndpoint(props),
+      sendToRealBroker: false,
+      loading: false,
+      error: '',
+      response: null,
+    };
+  }
 
-  const endpoint = useMemo(() => {
+  private getOperationId(): string {
+    const slot = asObject(this.props.context?.schema) as
+      | OperationSlotSchema
+      | undefined;
+    return getOperationId(slot?.operation);
+  }
+
+  private getOperationAction(): string {
+    const slot = asObject(this.props.context?.schema) as
+      | OperationSlotSchema
+      | undefined;
+    return getOperationAction(slot?.operation, slot?.type ?? 'send');
+  }
+
+  private getMetadata(): { operation_id: string; operation_type: string } {
+    return {
+      operation_id: this.getOperationId(),
+      operation_type: this.getOperationAction(),
+    };
+  }
+
+  private getEndpoint(props: TryItOutProps = this.props): string {
+    const slot = asObject(props.context?.schema) as
+      | OperationSlotSchema
+      | undefined;
+    const channelName = slot?.channelName ?? 'unknown';
+    const type = slot?.type ?? 'send';
+    const operationId = getOperationId(slot?.operation);
+    const operationAction = getOperationAction(slot?.operation, type);
     if (props.options.resolveEndpoint) {
       return props.options.resolveEndpoint({
         operationId,
@@ -52,67 +115,73 @@ export function TryItOutOperation(props: TryItOutProps) {
       });
     }
     return `/${props.options.endpointBase}`;
-  }, [props.options, operationId, operationAction, channelName, type]);
+  }
 
-  const payloadSchema = useMemo(
-    () => sanitizeSchema(normalizeSchema(resolvePayloadSchema(operation))),
-    [operation],
-  );
-  const payloadProperties = useMemo(() => {
+  private getPayloadSchema(): unknown {
+    const slot = asObject(this.props.context?.schema) as
+      | OperationSlotSchema
+      | undefined;
+    return sanitizeSchema(
+      normalizeSchema(resolvePayloadSchema(slot?.operation)),
+    );
+  }
+
+  private getPayloadProperties(): UnknownObject {
+    const payloadSchema = this.getPayloadSchema();
     const fromSchema = extractSchemaProperties(payloadSchema);
-    const extra = props.options.additionalFields ?? [];
+    const extra = this.props.options.additionalFields ?? [];
     if (extra.length === 0) return fromSchema;
     const merged = { ...fromSchema };
     for (const f of extra) {
       merged[f.key] = { type: f.type, title: f.label ?? f.key };
     }
     return merged;
-  }, [payloadSchema, props.options.additionalFields]);
-  const metadata = useMemo(
-    () => ({
-      operation_id: operationId,
-      operation_type: operationAction,
-    }),
-    [operationId, operationAction],
-  );
+  }
 
-  const [opened, setOpened] = useState(false);
-  const [mode, setMode] = useState<'form' | 'raw'>('form');
-  const [formData, setFormData] = useState<UnknownObject>({});
-  const [arrayData, setArrayData] = useState<unknown[]>([]);
-  const [raw, setRaw] = useState<string>(() =>
-    stringifyRaw({
-      ...metadata,
-      message: buildDefaultPayload(
-        payloadSchema,
-        props.options.additionalFields,
-      ),
-    }),
-  );
-  const [url, setUrl] = useState(endpoint);
-  const [sendToRealBroker, setSendToRealBroker] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [response, setResponse] = useState<unknown>(null);
+  componentDidUpdate(prevProps: TryItOutProps): void {
+    const endpoint = this.getEndpoint();
+    if (endpoint !== this.getEndpoint(prevProps)) {
+      this.setState({ url: endpoint });
+    }
+    if (this.state.mode === 'raw') {
+      const metadata = this.getMetadata();
+      const prevSlot = asObject(prevProps.context?.schema) as
+        | OperationSlotSchema
+        | undefined;
+      const prevMetadata = prevSlot
+        ? {
+            operation_id: getOperationId(prevSlot?.operation),
+            operation_type: getOperationAction(
+              prevSlot?.operation,
+              prevSlot?.type ?? 'send',
+            ),
+          }
+        : null;
+      const metadataChanged =
+        !prevMetadata ||
+        metadata.operation_id !== prevMetadata.operation_id ||
+        metadata.operation_type !== prevMetadata.operation_type;
+      if (metadataChanged) {
+        this.setState((s) => ({
+          raw: ensureRawMetadata(s.raw, metadata),
+        }));
+      }
+    }
+  }
 
-  useEffect(() => {
-    setUrl(endpoint);
-  }, [endpoint]);
-
-  useEffect(() => {
-    if (mode !== 'raw') return;
-    setRaw((prev) => ensureRawMetadata(prev, metadata));
-  }, [metadata, mode]);
-
-  const submit = async () => {
-    setLoading(true);
-    setError('');
-    setResponse(null);
+  private submit = async (): Promise<void> => {
+    this.setState({ loading: true, error: '', response: null });
+    const payloadSchema = this.getPayloadSchema();
+    const metadata = this.getMetadata();
+    const slot = asObject(this.props.context?.schema) as
+      | OperationSlotSchema
+      | undefined;
+    const channelName = slot?.channelName ?? 'unknown';
 
     try {
       let messageContent: unknown;
-      if (mode === 'raw') {
-        const parsed = JSON.parse(raw);
+      if (this.state.mode === 'raw') {
+        const parsed = JSON.parse(this.state.raw);
         const parsedObj = asObject(parsed);
         if (!parsedObj) {
           throw new Error('Raw payload must be a JSON object');
@@ -120,13 +189,13 @@ export function TryItOutOperation(props: TryItOutProps) {
         messageContent = parsedObj['message'];
       } else {
         if (isPrimitiveSchema(payloadSchema)) {
-          messageContent = formData[PRIMITIVE_PAYLOAD_FIELD];
+          messageContent = this.state.formData[PRIMITIVE_PAYLOAD_FIELD];
         } else if (isArraySchema(payloadSchema)) {
-          messageContent = arrayData;
+          messageContent = this.state.arrayData;
         } else {
           messageContent = buildDefaultPayload(payloadSchema, []);
           if (messageContent !== null) {
-            messageContent = { ...formData };
+            messageContent = { ...this.state.formData };
           }
         }
       }
@@ -136,14 +205,14 @@ export function TryItOutOperation(props: TryItOutProps) {
         operation_type: metadata.operation_type,
         message: messageContent,
       };
-      const res = await fetch(url, {
+      const res = await fetch(this.state.url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           channelName,
           message,
           options: {
-            sendToRealBroker,
+            sendToRealBroker: this.state.sendToRealBroker,
             timestamp: new Date().toISOString(),
           },
         }),
@@ -156,111 +225,138 @@ export function TryItOutOperation(props: TryItOutProps) {
             : `Request failed with status ${res.status}`,
         );
       }
-      setResponse(body);
+      this.setState({ response: body });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
+      this.setState({
+        error: e instanceof Error ? e.message : 'Unknown error',
+      });
     } finally {
-      setLoading(false);
+      this.setState({ loading: false });
     }
   };
 
-  const onFormFieldChange = (field: string, value: string, schema: unknown) => {
+  private onFormFieldChange = (
+    field: string,
+    value: string,
+    schema: unknown,
+  ): void => {
     const nextValue = castInputValue(value, schema);
-    const next = { ...formData };
+    const next = { ...this.state.formData };
     if (nextValue === undefined || nextValue === '') {
       delete next[field];
     } else {
       next[field] = nextValue;
     }
-    setFormData(next);
+    const payloadSchema = this.getPayloadSchema();
     const msgContent: unknown = isPrimitiveSchema(payloadSchema)
       ? next[PRIMITIVE_PAYLOAD_FIELD]
       : { ...next };
-    setRaw(
-      stringifyRaw({
-        operation_id: metadata.operation_id,
-        operation_type: metadata.operation_type,
+    this.setState({
+      formData: next,
+      raw: stringifyRaw({
+        operation_id: this.getMetadata().operation_id,
+        operation_type: this.getMetadata().operation_type,
         message: msgContent,
       }),
-    );
+    });
   };
 
-  const onArrayChange = (next: unknown[]) => {
-    setArrayData(next);
-    setRaw(
-      stringifyRaw({
-        operation_id: metadata.operation_id,
-        operation_type: metadata.operation_type,
+  private onArrayChange = (next: unknown[]): void => {
+    this.setState({
+      arrayData: next,
+      raw: stringifyRaw({
+        operation_id: this.getMetadata().operation_id,
+        operation_type: this.getMetadata().operation_type,
         message: next,
       }),
-    );
+    });
   };
 
-  const itemSchema = isArraySchema(payloadSchema)
-    ? (asObject(payloadSchema) as UnknownObject)?.items
-    : undefined;
+  render(): React.ReactNode {
+    const { props, state } = this;
+    const payloadSchema = this.getPayloadSchema();
+    const payloadProperties = this.getPayloadProperties();
+    const itemSchema = isArraySchema(payloadSchema)
+      ? (asObject(payloadSchema) as UnknownObject)?.items
+      : undefined;
 
-  return (
-    <div className="mt-4">
-      <button
-        type="button"
-        className="border border-solid border-blue-300 hover:bg-blue-300 hover:text-blue-600 text-blue-500 font-bold no-underline text-xs uppercase rounded px-3 py-1"
-        onClick={() => setOpened((prev) => !prev)}
-      >
-        {props.options.buttonLabel}
-      </button>
+    return (
+      <div className="mt-4">
+        <button
+          type="button"
+          className="border border-solid border-blue-300 hover:bg-blue-300 hover:text-blue-600 text-blue-500 font-bold no-underline text-xs uppercase rounded px-3 py-1"
+          onClick={() => this.setState((s) => ({ opened: !s.opened }))}
+        >
+          {props.options.buttonLabel}
+        </button>
 
-      {opened && (
-        <div className="mt-4 min-w-0 rounded-lg border bg-gray-100 p-4 space-y-4">
-          {props.options.showEndpointInput && (
-            <EndpointInput value={url} onChange={setUrl} />
-          )}
-
-          <ModeTabs mode={mode} onChange={setMode} />
-
-          {mode === 'form' &&
-            (isArraySchema(payloadSchema) ? (
-              <ArrayEditor
-                items={arrayData}
-                itemSchema={itemSchema}
-                onChange={onArrayChange}
+        {state.opened && (
+          <div className="mt-4 min-w-0 rounded-lg border bg-gray-100 p-4 space-y-4">
+            {props.options.showEndpointInput && (
+              <EndpointInput
+                value={state.url}
+                onChange={(url) => this.setState({ url })}
               />
-            ) : (
-              <PayloadFormFields
-                payloadProperties={payloadProperties}
-                formData={formData}
-                onFieldChange={onFormFieldChange}
-              />
-            ))}
-
-          {mode === 'raw' && <RawJsonEditor value={raw} onChange={setRaw} />}
-
-          {props.options.showRealBrokerToggle && (
-            <BrokerToggle
-              checked={sendToRealBroker}
-              onChange={setSendToRealBroker}
-            />
-          )}
-
-          <ActionButtons
-            loading={loading}
-            onCancel={() => setOpened(false)}
-            onSubmit={submit}
-          />
-
-          {error && <div className="text-sm text-red-600">{String(error)}</div>}
-          {response !== null && (
-            <pre className="mt-2 max-h-72 max-w-full overflow-x-auto overflow-y-auto rounded border bg-white p-4 text-xs">
-              {JSON.stringify(response, null, 2)}
-            </pre>
-          )}
-          {props.options.showPayloadSchema &&
-            payloadSchema !== undefined &&
-            payloadSchema !== null && (
-              <PayloadSchemaPreview payloadSchema={payloadSchema} />
             )}
-        </div>
-      )}
-    </div>
-  );
+
+            <ModeTabs
+              mode={state.mode}
+              onChange={(mode) => this.setState({ mode })}
+            />
+
+            {state.mode === 'form' &&
+              (isArraySchema(payloadSchema) ? (
+                <ArrayEditor
+                  items={state.arrayData}
+                  itemSchema={itemSchema}
+                  onChange={this.onArrayChange}
+                />
+              ) : (
+                <PayloadFormFields
+                  payloadProperties={payloadProperties}
+                  formData={state.formData}
+                  onFieldChange={this.onFormFieldChange}
+                />
+              ))}
+
+            {state.mode === 'raw' && (
+              <RawJsonEditor
+                value={state.raw}
+                onChange={(raw) => this.setState({ raw })}
+              />
+            )}
+
+            {props.options.showRealBrokerToggle && (
+              <BrokerToggle
+                checked={state.sendToRealBroker}
+                onChange={(sendToRealBroker) =>
+                  this.setState({ sendToRealBroker })
+                }
+              />
+            )}
+
+            <ActionButtons
+              loading={state.loading}
+              onCancel={() => this.setState({ opened: false })}
+              onSubmit={this.submit}
+            />
+
+            {state.error && (
+              <div className="text-sm text-red-600">{String(state.error)}</div>
+            )}
+            {state.response !== null && (
+              <pre className="mt-2 max-h-72 max-w-full overflow-x-auto overflow-y-auto rounded border bg-white p-4 text-xs">
+                {JSON.stringify(state.response, null, 2)}
+              </pre>
+            )}
+            {props.options.showPayloadSchema &&
+              payloadSchema !== undefined &&
+              payloadSchema !== null && (
+                <PayloadSchemaPreview payloadSchema={payloadSchema} />
+              )}
+          </div>
+        )}
+      </div>
+    );
+  }
 }
