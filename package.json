@@ -1,8 +1,14 @@
 {
   "name": "asyncapi-try-it-plugin",
-  "version": "0.2.0-beta.0",
+  "version": "0.2.0-beta.1",
   "description": "Try it out plugin for @asyncapi/react-component",
-  "keywords": ["asyncapi", "asyncapi-plugin", "react", "reactjs", "event"],
+  "keywords": [
+    "asyncapi",
+    "asyncapi-plugin",
+    "react",
+    "reactjs",
+    "event"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Shepard2154/asyncapi-try-it-plugin.git"
